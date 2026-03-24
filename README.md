@@ -24,7 +24,7 @@ It reads PDF documents, extracts text, splits the text into chunks, converts chu
 - pypdf
 
 ## Project Structure
-'''text
+```text
 rag-pdf-chatbot/
 ├── app/
 │   ├── main.py
