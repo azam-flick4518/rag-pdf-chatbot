@@ -1,5 +1,6 @@
 pypdf
-langchain-community
-langchain-ollama
-langchain-text-splitters
 faiss-cpu
+numpy
+requests
+fastapi
+uvicorn

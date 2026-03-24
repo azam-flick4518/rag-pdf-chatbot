@@ -5,7 +5,6 @@ import numpy as np
 import requests
 from pypdf import PdfReader
 
-
 PDF_PATH = "data/sample.pdf"
 MODEL_NAME = "llama3.2:3b"
 OLLAMA_URL = "http://localhost:11434"
@@ -17,12 +16,10 @@ CHUNKS_PATH = "faiss_index/chunks.pkl"
 def extract_text_from_pdf(pdf_path):
     reader = PdfReader(pdf_path)
     text = []
-    for i, page in enumerate(reader.pages, start=1):
+    for page in reader.pages:
         page_text = page.extract_text()
         if page_text:
             text.append(page_text)
-        else:
-            print(f"Warning: no text extracted from page {i}")
     return "\n".join(text)
 
 
@@ -48,10 +45,8 @@ def get_embedding(text):
 
 def build_faiss_index(chunks):
     embeddings = []
-    total = len(chunks)
-
     for i, chunk in enumerate(chunks, start=1):
-        print(f"Embedding chunk {i}/{total}")
+        print(f"Embedding chunk {i}/{len(chunks)}")
         embeddings.append(get_embedding(chunk))
 
     vectors = np.array(embeddings).astype("float32")
@@ -74,6 +69,16 @@ def load_index():
             chunks = pickle.load(f)
         return index, chunks
     return None, None
+
+
+def prepare_index(pdf_path=PDF_PATH):
+    text = extract_text_from_pdf(pdf_path)
+    if not text.strip():
+        raise ValueError("No readable text found in the PDF.")
+    chunks = chunk_text(text)
+    index = build_faiss_index(chunks)
+    save_index(index, chunks)
+    return {"message": "Index built successfully", "chunks": len(chunks)}
 
 
 def retrieve_chunks(query, index, chunks, top_k=3):
@@ -112,59 +117,17 @@ Question:
     return response.json()["response"]
 
 
-def main():
-    if not os.path.exists(PDF_PATH):
-        print(f"PDF not found at: {PDF_PATH}")
-        return
+def answer_query(question):
+    index, chunks = load_index()
+    if index is None or chunks is None:
+        raise ValueError("Index not found. Please build the index first.")
 
-    index, stored_chunks = load_index()
+    relevant_chunks = retrieve_chunks(question, index, chunks, top_k=3)
+    context = "\n\n".join(relevant_chunks)
+    answer = ask_llm(context, question)
 
-    if index is None or stored_chunks is None:
-        print("Reading PDF...")
-        text = extract_text_from_pdf(PDF_PATH)
-
-        if not text.strip():
-            print("No readable text found in the PDF.")
-            return
-
-        print("Chunking text...")
-        chunks = chunk_text(text)
-
-        print("Building embeddings and FAISS index...")
-        index = build_faiss_index(chunks)
-        stored_chunks = chunks
-
-        print("Saving index...")
-        save_index(index, stored_chunks)
-    else:
-        print("Loaded existing FAISS index.")
-
-    print("\nRAG PDF Chatbot is ready. Type 'exit' to quit.\n")
-
-    while True:
-        query = input("Ask a question about the PDF: ").strip()
-        if query.lower() in {"exit", "quit"}:
-            print("Goodbye.")
-            break
-
-        try:
-            relevant_chunks = retrieve_chunks(query, index, stored_chunks, top_k=3)
-
-            print("\nRetrieved chunks:\n")
-            for i, chunk in enumerate(relevant_chunks, start=1):
-                print(f"[Chunk {i}] {chunk[:300]}")
-                print("-" * 50)
-
-            context = "\n\n".join(relevant_chunks)
-            answer = ask_llm(context, query)
-
-            print("\nAnswer:\n")
-            print(answer)
-            print("\n" + "=" * 70 + "\n")
-
-        except Exception as e:
-            print(f"\nError: {e}\n")
-
-
-if __name__ == "__main__":
-    main()
+    return {
+        "question": question,
+        "answer": answer,
+        "retrieved_chunks": relevant_chunks
+    }
