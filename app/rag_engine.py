@@ -6,7 +6,10 @@ import requests
 from pypdf import PdfReader
 
 PDF_PATH = "data/sample.pdf"
-MODEL_NAME = "llama3.2:3b"
+
+# Separate the roles
+EMBED_MODEL = "nomic-embed-text"
+CHAT_MODEL = "llama3.2:3b" # Or "qwen2.5-coder:1.5b"
 OLLAMA_URL = "http://localhost:11434"
 
 INDEX_PATH = "faiss_index/index.faiss"
@@ -23,11 +26,13 @@ def extract_text_from_pdf(pdf_path):
     return "\n".join(text)
 
 
-def chunk_text(text, chunk_size=600, overlap=120):
+def chunk_text(text, chunk_size=600, overlap=120, separator="\n\n"):
     chunks = []
     start = 0
     while start < len(text):
-        end = start + chunk_size
+        end = min(start + chunk_size, len(text))
+        if text[end-1] == separator or text[end-1] == "\n":  # Check for separator characters at the end of each chunk
+            end -= 1
         chunks.append(text[start:end])
         start += chunk_size - overlap
     return chunks
@@ -36,7 +41,7 @@ def chunk_text(text, chunk_size=600, overlap=120):
 def get_embedding(text):
     response = requests.post(
         f"{OLLAMA_URL}/api/embeddings",
-        json={"model": MODEL_NAME, "prompt": text},
+        json={"model": EMBED_MODEL, "prompt": text}, # Use EMBED_MODEL
         timeout=120
     )
     response.raise_for_status()
@@ -75,7 +80,7 @@ def prepare_index(pdf_path=PDF_PATH):
     text = extract_text_from_pdf(pdf_path)
     if not text.strip():
         raise ValueError("No readable text found in the PDF.")
-    chunks = chunk_text(text)
+    chunks = chunk_text(text, chunk_size=600, overlap=120, separator="\n\n")
     index = build_faiss_index(chunks)
     save_index(index, chunks)
     return {"message": "Index built successfully", "chunks": len(chunks)}
@@ -107,7 +112,7 @@ Question:
     response = requests.post(
         f"{OLLAMA_URL}/api/generate",
         json={
-            "model": MODEL_NAME,
+            "model": CHAT_MODEL,
             "prompt": prompt,
             "stream": False
         },

@@ -1,6 +1,7 @@
-pypdf
-faiss-cpu
-numpy
-requests
-fastapi
-uvicorn
+pypdf==4.1.0
+faiss-cpu==1.8.0
+numpy==1.26.4
+requests==2.31.0
+fastapi==0.110.0
+uvicorn==0.29.0
+python-multipart==0.0.9

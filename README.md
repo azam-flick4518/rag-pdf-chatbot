@@ -1,93 +1,64 @@
-# Local RAG PDF Chatbot using Ollama, FAISS, FastAPI, and Python
+# Local RAG PDF Chatbot (Ollama + FAISS + FastAPI)
 
-## Overview
-This project is a local Retrieval-Augmented Generation (RAG) PDF chatbot built to explore practical AI retrieval workflows and backend AI integration patterns.
+A production-grade local Retrieval-Augmented Generation (RAG) system using dedicated embedding and chat models.
 
-It reads PDF documents, extracts text, splits the text into chunks, converts chunks into embeddings using Ollama, stores them in a FAISS vector index, and exposes question-answering through a FastAPI service.
+## 🚀 Features
+- **Dual-Model Architecture**: Uses `nomic-embed-text` for retrieval and `llama3.2:3b` for generation.
+- **Optimized Embeddings**: Local vector search powered by FAISS.
+- **FastAPI Backend**: Professional API structure with Swagger documentation.
+- **Zero Cloud Costs**: Runs entirely on local hardware via Ollama.
 
-## Features
-- PDF text extraction using 'pypdf'
-- Text chunking for retrieval
-- Local embeddings using Ollama
-- Vector search using FAISS
-- Question-answering via local LLM
-- FastAPI endpoints for index building and querying
-- Swagger UI for API testing
+## 🛠️ Tech Stack
+- **AI/LLM**: Ollama (Llama 3.2 & Nomic Embeddings)
+- **Vector DB**: FAISS (Facebook AI Similarity Search)
+- **Framework**: FastAPI / Uvicorn
+- **Language**: Python 3.9+
 
-## Tech Stack
-- Python
-- FastAPI
-- Ollama
-- FAISS
-- NumPy
-- Requests
-- pypdf
-
-## Project Structure
+## 📁 Project Structure
 ```text
-rag-pdf-chatbot/
+rag_pdf_chatbot/
 ├── app/
-│   ├── main.py
-│   ├── rag_engine.py
-│   └── models.py
-├── .gitignore
-├── README.md
+│   ├── main.py          # FastAPI routes
+│   ├── rag_engine.py    # Core RAG logic & indexing
+│   └── models.py        # Pydantic request models
+├── data/
+│   └── sample.pdf       # Source document
+├── faiss_index/         # Generated vector store (Auto-created)
 ├── requirements.txt
+└── README.md
 
-## How It Works
+⚙️ Setup Instructions
+1. Prepare Environment
 
-1. Read text from a PDF  
-2. Split text into overlapping chunks  
-3. Generate embeddings for each chunk using Ollama  
-4. Store vectors in FAISS  
-5. Embed the user question  
-6. Retrieve the most relevant chunks  
-7. Send retrieved context to the LLM  
-8. Return a grounded answer  
-
----
-
-## API Endpoints
-
-### `GET /`
-Health check endpoint  
-
----
-
-### `POST /build-index`
-Builds the FAISS index from the PDF  
-
----
-
-### `POST /ask`
-Accepts a question and returns:
-- answer  
-- question  
-- retrieved chunks  
-
-#### Example request:
-```json
-{
-  "question": "What is this document about?"
-}
-
-Run Locally
-1. Create and activate virtual environment
 python -m venv .venv
 .venv\Scripts\activate
-
-2. Install dependencies
 pip install -r requirements.txt
 
-3. Start Ollama
+2. Configure Ollama
+Ensure Ollama is running and pull the necessary models:
 
-Make sure Ollama is running locally and the model is available:
+ollama pull nomic-embed-text
+ollama pull llama3.2:3b
 
-ollama list
-
-4. Run the API
+3. Run the API
 
 uvicorn app.main:app --reload
 
-5. Open Swagger docs
-http://127.0.0.1:8000/docs
+🔌 API Usage
+Access the interactive documentation at: http://127.0.0.1:8000/docs
+
+Key Endpoints:
+POST /build-index: Processes the PDF and creates the FAISS vector store.
+
+POST /ask: Queries the document.
+
+Payload: {"question": "What are the key takeaways?"}
+
+📝 Maintenance
+To clear the database and re-index a new PDF:
+
+Delete the faiss_index/ folder.
+
+Place the new PDF in data/sample.pdf.
+
+Run the Build Index command again.
